@@ -53,7 +53,49 @@ void drawRect(float x, float y, float w, float h,
     glEnd();
 }
 
+// ============================================================
+// HELPER: Draw a filled circle
+// ============================================================
+void drawCircle(float cx, float cy, float radius,
+                float r, float g, float b)
+{
+    glColor3f(r, g, b);
+    glBegin(GL_TRIANGLE_FAN);
+        glVertex2f(cx, cy);
+        for (int i = 0; i <= 36; i++)
+        {
+            float angle = i * 3.14159f * 2.0f / 36.0f;
+            glVertex2f(cx + cos(angle) * radius,
+                       cy + sin(angle) * radius);
+        }
+    glEnd();
+}
 
+
+// ============================================================
+// HELPER: Draw Text on screen
+// ============================================================
+void drawText(float x, float y, string text,
+              float r, float g, float b)
+{
+    glColor3f(r, g, b);
+    glRasterPos2f(x, y);
+    for (int i = 0; i < (int)text.size(); i++)
+    {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, text[i]);
+    }
+}
+
+void drawTextLarge(float x, float y, string text,
+                   float r, float g, float b)
+{
+    glColor3f(r, g, b);
+    glRasterPos2f(x, y);
+    for (int i = 0; i < (int)text.size(); i++)
+    {
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, text[i]);
+    }
+}
 // ============================================================
 // DRAW MENU PAGE
 // ============================================================
@@ -61,6 +103,23 @@ void drawMenu()
 {
     // Background
     drawRect(0, 0, windowWidth, windowHeight, 0, 0, 0.1f);
+
+    // Title
+    drawTextLarge(250, 480, "DX BALL GAME", 1, 0.8f, 0);
+    drawTextLarge(270, 450, "============", 0.5f, 0.5f, 0.5f);
+
+    // Menu options
+    drawText(340, 380, "1. Start Game",    1, 1, 0);
+    drawText(340, 340, "2. High Score",    0, 1, 0);
+    drawText(340, 300, "3. Help",          0, 1, 1);
+    drawText(340, 260, "4. Exit",          1, 0, 0);
+
+    drawText(220, 150, "Press 1 / 2 / 3 / 4 to select", 0.7f, 0.7f, 0.7f);
+
+    // Decorative balls
+    drawCircle(100, 400, 20, 1, 1, 0);
+    drawCircle(700, 400, 20, 0, 1, 1);
+    drawCircle(400, 200, 15, 1, 0, 0.5f);
 
 }
 
