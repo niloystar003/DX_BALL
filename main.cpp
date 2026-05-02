@@ -86,11 +86,49 @@ struct Brick
 
 Brick bricks[BRICK_ROWS][BRICK_COLS];
 
+// ============================================================
+// PERK / DROP ITEM SETTINGS
+// ============================================================
+// Perk types
+#define PERK_NONE          0
+#define PERK_EXTRA_LIFE    1   // grants extra life
+#define PERK_SPEED_UP      2   // faster ball
+#define PERK_WIDE_PADDLE   3   // wider paddle
+#define PERK_FIREBALL      4   // ball breaks bricks without bouncing (for short time)
+#define PERK_SHRINK_PADDLE 5   // paddle shrinks (damage)
+#define PERK_INSTANT_DEATH 6   // lose a life immediately (damage)
+
+struct PerkItem
+{
+    float x, y;
+    float width, height;
+    int   type;
+    bool  active;
+    float r, g, b;
+    float fallSpeed;
+};
+
+vector<PerkItem> perkItems;  // list of falling perk items
+
 // Perk effect timers
 float widePaddleTimer  = 0.0f;   // time remaining for wide paddle
 float fireballTimer    = 0.0f;   // time remaining for fireball
 bool  isFireball       = false;
 bool  isWidePaddle     = false;
+
+
+// ============================================================
+// SHOOTING PADDLE
+// ============================================================
+// (Optional advanced feature - simple bullets from paddle)
+struct Bullet
+{
+    float x, y;
+    bool  active;
+};
+vector<Bullet> bullets;
+bool shootingPaddle = false;
+float shootingTimer = 0.0f;
 
 // ============================================================
 // HELPER: Draw a filled rectangle
@@ -233,6 +271,46 @@ void drawBall()
 }
 
 // ============================================================
+// DRAW PERK ITEMS (falling)
+// ============================================================
+void drawPerkItems()
+{
+    for (int i = 0; i < (int)perkItems.size(); i++)
+    {
+        PerkItem &p = perkItems[i];
+        if (!p.active) continue;
+
+        drawRect(p.x, p.y, p.width, p.height, p.r, p.g, p.b);
+        drawRectOutline(p.x, p.y, p.width, p.height, 1, 1, 1);
+
+        // Label
+        string label = "?";
+        if      (p.type == PERK_EXTRA_LIFE)    label = "+L";
+        else if (p.type == PERK_SPEED_UP)      label = "+S";
+        else if (p.type == PERK_WIDE_PADDLE)   label = "+W";
+        else if (p.type == PERK_FIREBALL)      label = "FB";
+        else if (p.type == PERK_SHRINK_PADDLE) label = "-W";
+        else if (p.type == PERK_INSTANT_DEATH) label = "XX";
+
+        drawText(p.x + 2, p.y + 3, label, 0, 0, 0);
+    }
+}
+
+// ============================================================
+// DRAW BULLETS
+// ============================================================
+void drawBullets()
+{
+    for (int i = 0; i < (int)bullets.size(); i++)
+    {
+        Bullet &blt = bullets[i];
+        if (!blt.active) continue;
+        drawRect(blt.x - 2, blt.y, 4, 10, 1, 1, 0);
+    }
+}
+
+
+// ============================================================
 // DRAW SIDE WALLS
 // ============================================================
 void drawWalls()
@@ -244,7 +322,6 @@ void drawWalls()
     // Top wall
     drawRect(0, windowHeight - 10, windowWidth, 10, 0.3f, 0.3f, 0.3f);
 }
-
 
 // ============================================================
 // DRAW MENU PAGE
@@ -283,6 +360,9 @@ void drawGame()
     drawBricks();
     drawPaddle();
     drawBall();
+    drawPerkItems();
+
+    drawBullets();
 }
 
 
