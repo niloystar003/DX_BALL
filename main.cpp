@@ -45,6 +45,21 @@ float paddleHeight  = 15.0f;
 float paddleSpeed   = 10.0f;
 
 // ============================================================
+// BALL SETTINGS
+// ============================================================
+float ballX      = 400.0f;
+float ballY      = 60.0f;
+float ballRadius = 10.0f;
+float ballDX     = 3.0f;   // ball velocity x
+float ballDY     = 4.0f;   // ball velocity y
+bool  ballLaunched = false; // ball sticks to paddle until launched
+
+// Speed increase timer
+float ballSpeedTimer    = 0.0f;
+float ballSpeedInterval = 15.0f; // increase speed every 15 seconds
+float ballSpeedMax      = 12.0f;
+
+// ============================================================
 // BRICK SETTINGS
 // ============================================================
 #define BRICK_ROWS    7
@@ -205,6 +220,19 @@ void drawPaddle()
 }
 
 // ============================================================
+// DRAW BALL
+// ============================================================
+void drawBall()
+{
+    float br = 1.0f, bg = 1.0f, bb = 1.0f;
+    if (isFireball) { br=1; bg=0.4f; bb=0; }
+
+    drawCircle(ballX, ballY, ballRadius, br, bg, bb);
+    // Inner highlight
+    drawCircle(ballX - 3, ballY + 3, ballRadius * 0.4f, 1, 1, 1);
+}
+
+// ============================================================
 // DRAW SIDE WALLS
 // ============================================================
 void drawWalls()
@@ -254,6 +282,7 @@ void drawGame()
     drawWalls();
     drawBricks();
     drawPaddle();
+    drawBall();
 }
 
 
