@@ -116,6 +116,14 @@ float fireballTimer    = 0.0f;   // time remaining for fireball
 bool  isFireball       = false;
 bool  isWidePaddle     = false;
 
+// ============================================================
+// GAME STATS
+// ============================================================
+int   playerLives  = 3;
+int   playerScore  = 0;
+float gameTime     = 0.0f;   // total time elapsed (seconds)
+int   highScore    = 0;
+
 
 // ============================================================
 // SHOOTING PADDLE
@@ -213,6 +221,16 @@ string intToStr(int val)
     return ss.str();
 }
 
+
+string floatToStr(float val, int decimals)
+{
+    stringstream ss;
+    ss.precision(decimals);
+    ss << fixed << val;
+    return ss.str();
+}
+
+
 // ============================================================
 // DRAW BRICKS
 // ============================================================
@@ -309,6 +327,49 @@ void drawBullets()
     }
 }
 
+// ============================================================
+// DRAW HUD (lives, score, time, perks)
+// ============================================================
+void drawHUD()
+{
+    // Background bar at bottom
+    drawRect(0, 0, windowWidth, 20, 0.1f, 0.1f, 0.1f);
+
+    // Lives
+    string livesStr = "Lives: " + intToStr(playerLives);
+    drawText(10, 3, livesStr, 0, 1, 0);
+
+    // Score
+    string scoreStr = "Score: " + intToStr(playerScore);
+    drawText(150, 3, scoreStr, 1, 1, 0);
+
+    // Time
+    string timeStr = "Time: " + floatToStr(gameTime, 1) + "s";
+    drawText(320, 3, timeStr, 0, 1, 1);
+
+    // High score
+    string highStr = "High: " + intToStr(highScore);
+    drawText(500, 3, highStr, 1, 0.5f, 0);
+
+    // Active perks indicator
+    if (isWidePaddle)
+    {
+        string wpStr = "WIDE:" + floatToStr(widePaddleTimer, 0) + "s";
+        drawText(650, 3, wpStr, 0, 1, 1);
+    }
+    if (isFireball)
+    {
+        string fbStr = "FIRE:" + floatToStr(fireballTimer, 0) + "s";
+        drawText(650, 3, fbStr, 1, 0.4f, 0);
+    }
+
+    // Draw life icons (small circles)
+    for (int i = 0; i < playerLives; i++)
+    {
+        drawCircle(20 + i * 20, 580, 7, 1, 1, 1);
+    }
+}
+
 
 // ============================================================
 // DRAW SIDE WALLS
@@ -350,6 +411,45 @@ void drawMenu()
 
 }
 
+// ============================================================
+// DRAW PAUSE PAGE
+// ============================================================
+void drawPaused()
+{
+    // Semi-transparent overlay
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0, 0, 0, 0.6f);
+    glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2f(windowWidth, 0);
+        glVertex2f(windowWidth, windowHeight);
+        glVertex2f(0, windowHeight);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    drawTextLarge(310, 360, "PAUSED", 1, 1, 0);
+    drawText(260, 310, "Press P to Resume", 1, 1, 1);
+    drawText(260, 270, "Press R to Restart", 0, 1, 0);
+    drawText(260, 230, "Press ESC / M for Menu", 1, 0, 0);
+}
+
+// ============================================================
+// DRAW GAME OVER PAGE
+// ============================================================
+void drawGameOver()
+{
+    drawRect(0, 0, windowWidth, windowHeight, 0.1f, 0, 0);
+
+    drawTextLarge(280, 400, "GAME OVER!", 1, 0, 0);
+    drawText(260, 350, "Score: " + intToStr(playerScore),    1, 1, 0);
+    drawText(260, 310, "High Score: " + intToStr(highScore), 0, 1, 0);
+    drawText(260, 270, "Time: " + floatToStr(gameTime, 1) + " seconds", 0, 1, 1);
+
+    drawText(240, 200, "Press R to Restart",  1, 1, 1);
+    drawText(240, 160, "Press M for Menu",    0.7f, 0.7f, 0.7f);
+    drawText(240, 120, "Press ESC to Exit",   1, 0, 0);
+}
 
 // ============================================================
 // DRAW PLAYING GAME SCREEN
@@ -361,8 +461,8 @@ void drawGame()
     drawPaddle();
     drawBall();
     drawPerkItems();
-
     drawBullets();
+    drawHUD();
 }
 
 
@@ -376,6 +476,10 @@ void display()
 
     if (gameState == STATE_MENU) drawMenu();
     else if (gameState == STATE_PLAYING)   { drawGame(); }
+
+    else if (gameState == STATE_PAUSED)    { drawGame(); drawPaused(); }
+    else if (gameState == STATE_GAME_OVER) drawGameOver();
+
 
 
     glutSwapBuffers();
