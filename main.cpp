@@ -11,6 +11,20 @@
 #include <cstdlib>
 #include <sstream>
 
+// ---- Thread wrapper so sound never blocks the game loop ----
+struct SoundJob { float freq; int ms; float vol; };
+
+
+void asyncTone(float freq, int ms, float vol = 0.8f)
+{
+    SoundJob* j = (SoundJob*)malloc(sizeof(SoundJob));
+    j->freq = freq; j->ms = ms; j->vol = vol;
+
+}
+
+// ---- Named sound effects used in the game ----
+void soundSpeedUp()       { asyncTone(990, 100, 0.7f); }   // ball speed increased
+
 // ============================================================
 
 using namespace std;
@@ -230,6 +244,33 @@ string floatToStr(float val, int decimals)
     return ss.str();
 }
 
+// ============================================================
+// UPDATE GAME LOGIC
+// ============================================================
+void update(float deltaTime)
+{
+    if (gameState != STATE_PLAYING) return;
+
+    // ---- Update time ----
+    gameTime += deltaTime;
+
+    // ---- Gradually increase ball speed ----
+    ballSpeedTimer += deltaTime;
+    if (ballSpeedTimer >= ballSpeedInterval)
+    {
+        ballSpeedTimer = 0.0f;
+        float speed = sqrt(ballDX*ballDX + ballDY*ballDY);
+        if (speed < ballSpeedMax)
+        {
+            float factor = 1.1f;
+            ballDX *= factor;
+            ballDY *= factor;
+            soundSpeedUp();                       // SOUND: speed increased
+            cout << "Ball speed increased!" << endl;
+        }
+    }
+
+}
 
 // ============================================================
 // DRAW BRICKS
@@ -552,6 +593,27 @@ void display()
 
     glutSwapBuffers();
 }
+
+// ============================================================
+// TIMER CALLBACK - called every ~16ms (~60 FPS)
+// ============================================================
+float lastTime = 0.0f;
+
+void timer(int value)
+{
+    float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    float deltaTime   = currentTime - lastTime;
+    lastTime          = currentTime;
+
+    // Clamp delta time (avoid huge jumps when paused/resized)
+    if (deltaTime > 0.1f) deltaTime = 0.1f;
+
+    update(deltaTime);
+    glutPostRedisplay();
+
+    // Register next timer callback
+    glutTimerFunc(16, timer, 0);
+}
 // ============================================================
 // RESHAPE CALLBACK
 // ============================================================
@@ -594,6 +656,11 @@ int main(int argc, char** argv)
     // Register callbacks
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+
+
+    // Start timer
+    lastTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    glutTimerFunc(16, timer, 0);
 
     cout << "=== DX Ball Game ===" << endl;
     cout << "Controls:" << endl;
