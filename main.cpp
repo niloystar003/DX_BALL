@@ -452,6 +452,70 @@ void drawGameOver()
 }
 
 // ============================================================
+// DRAW WIN PAGE
+// ============================================================
+void drawWin()
+{
+    drawRect(0, 0, windowWidth, windowHeight, 0, 0.1f, 0);
+
+    drawTextLarge(250, 420, "YOU WIN! Congratulations!", 0, 1, 0);
+    drawText(260, 370, "Score: " + intToStr(playerScore),    1, 1, 0);
+    drawText(260, 330, "High Score: " + intToStr(highScore), 0, 1, 1);
+    drawText(260, 290, "Time: " + floatToStr(gameTime, 1) + " seconds", 1, 1, 1);
+
+    drawText(260, 230, "Press R to Play Again", 1, 1, 1);
+    drawText(260, 190, "Press M for Menu",      0.7f, 0.7f, 0.7f);
+}
+
+// ============================================================
+// DRAW HIGH SCORE PAGE
+// ============================================================
+void drawHighScore()
+{
+    drawRect(0, 0, windowWidth, windowHeight, 0, 0, 0.15f);
+
+    drawTextLarge(280, 480, "HIGH SCORE", 1, 0.8f, 0);
+
+    drawText(300, 400, "Best Score : " + intToStr(highScore), 0, 1, 0);
+    drawText(300, 360, "Keep Playing to Beat It!", 1, 1, 0);
+
+    drawText(300, 200, "Press M to go back to Menu", 0.7f, 0.7f, 0.7f);
+}
+
+// ============================================================
+// DRAW HELP PAGE
+// ============================================================
+void drawHelp()
+{
+    drawRect(0, 0, windowWidth, windowHeight, 0, 0, 0.2f);
+
+    drawTextLarge(300, 540, "HELP / CONTROLS", 1, 1, 0);
+
+    drawText(80, 490, "LEFT ARROW / A  - Move paddle left",      1, 1, 1);
+    drawText(80, 460, "RIGHT ARROW / D - Move paddle right",     1, 1, 1);
+    drawText(80, 430, "SPACE           - Launch ball",           1, 1, 1);
+    drawText(80, 400, "P               - Pause / Resume",        1, 1, 1);
+    drawText(80, 370, "F               - Shoot bullet (if perk)",1, 1, 1);
+    drawText(80, 340, "ESC / M         - Menu",                  1, 1, 1);
+    drawText(80, 310, "Mouse Move      - Move paddle",           1, 1, 1);
+
+    drawTextLarge(80, 270, "PERKS:", 0, 1, 0);
+    drawText(80, 240, "+L (Green)  = Extra Life",                0,   1,   0  );
+    drawText(80, 215, "+S (Yellow) = Speed Up Ball",             1,   1,   0  );
+    drawText(80, 190, "+W (Cyan)   = Wide Paddle for 15 sec",    0,   1,   1  );
+    drawText(80, 165, "FB (Orange) = Fireball (break through) 10s", 1,   0.5f,0  );
+    drawText(80, 140, "-W (Red)    = Shrink Paddle (BAD!)",      1,   0,   0  );
+    drawText(80, 115, "XX (Purple) = Instant Death (BAD!)",      0.5f,0,   0.5f);
+
+    drawTextLarge(80, 75, "BRICK TYPES:", 1, 0.5f, 0);
+    drawText(80, 50, "Normal=1 hit | Hard=2 hits | Wall(brown)=3 hits", 1, 1, 1);
+
+    drawText(300, 20, "Press M to go back", 0.7f, 0.7f, 0.7f);
+}
+
+
+
+// ============================================================
 // DRAW PLAYING GAME SCREEN
 // ============================================================
 void drawGame()
@@ -479,6 +543,10 @@ void display()
 
     else if (gameState == STATE_PAUSED)    { drawGame(); drawPaused(); }
     else if (gameState == STATE_GAME_OVER) drawGameOver();
+    else if (gameState == STATE_WIN)       drawWin();
+    else if (gameState == STATE_HELP)      drawHelp();
+
+    else if (gameState == STATE_HIGHSCORE) drawHighScore();
 
 
 
