@@ -93,6 +93,9 @@ void asyncTone(float freq, int ms, float vol = 0.8f)
 }
 
 // ---- Named sound effects used in the game ----
+void soundWall()          { asyncTone(880,  30, 0.4f); }   // short high tick
+void soundGameOver()      { asyncTone(100, 500, 1.0f); }   // game over
+void soundLoseLife()      { asyncTone(200, 300, 0.9f); }   // lose a life
 void soundSpeedUp()       { asyncTone(990, 100, 0.7f); }   // ball speed increased
 
 // ============================================================
@@ -127,6 +130,10 @@ float paddleY       = 30.0f;    // paddle bottom edge y
 float paddleWidth   = 100.0f;   // normal paddle width
 float paddleHeight  = 15.0f;
 float paddleSpeed   = 10.0f;
+
+// keyboard flags for paddle movement
+bool moveLeft  = false;
+bool moveRight = false;
 
 // ============================================================
 // BALL SETTINGS
@@ -315,6 +322,18 @@ string floatToStr(float val, int decimals)
 }
 
 // ============================================================
+// RESET ball position (stick to paddle)
+// ============================================================
+void resetBall()
+{
+    ballX        = paddleX + paddleWidth / 2.0f;
+    ballY        = paddleY + paddleHeight + ballRadius + 1;
+    ballDX       = 3.0f;
+    ballDY       = 4.0f;
+    ballLaunched = false;
+}
+
+// ============================================================
 // UPDATE GAME LOGIC
 // ============================================================
 void update(float deltaTime)
@@ -338,6 +357,100 @@ void update(float deltaTime)
             soundSpeedUp();                       // SOUND: speed increased
             cout << "Ball speed increased!" << endl;
         }
+    }
+
+
+    // ---- Update perk timers ----
+    if (isWidePaddle)
+    {
+        widePaddleTimer -= deltaTime;
+        if (widePaddleTimer <= 0)
+        {
+            isWidePaddle = false;
+            paddleWidth  = 100.0f;
+        }
+    }
+    if (isFireball)
+    {
+        fireballTimer -= deltaTime;
+        if (fireballTimer <= 0)
+        {
+            isFireball = false;
+        }
+    }
+    if (shootingPaddle)
+    {
+        shootingTimer -= deltaTime;
+        if (shootingTimer <= 0)
+        {
+            shootingPaddle = false;
+        }
+    }
+
+    // ---- Move paddle with keyboard ----
+    if (moveLeft)
+    {
+        paddleX -= paddleSpeed;
+        if (paddleX < 10) paddleX = 10;
+    }
+    if (moveRight)
+    {
+        paddleX += paddleSpeed;
+        if (paddleX + paddleWidth > windowWidth - 10)
+            paddleX = windowWidth - 10 - paddleWidth;
+    }
+
+    // ---- If ball not launched, stick to paddle ----
+    if (!ballLaunched)
+    {
+        ballX = paddleX + paddleWidth / 2.0f;
+        ballY = paddleY + paddleHeight + ballRadius + 1;
+        return;
+    }
+
+    // ---- Move ball ----
+    ballX += ballDX;
+    ballY += ballDY;
+
+    // ---- Wall collisions ----
+    // Left wall
+    if (ballX - ballRadius < 10)
+    {
+        ballX  = 10 + ballRadius;
+        ballDX = -ballDX;
+        soundWall();                              // SOUND
+    }
+    // Right wall
+    if (ballX + ballRadius > windowWidth - 10)
+    {
+        ballX  = windowWidth - 10 - ballRadius;
+        ballDX = -ballDX;
+        soundWall();                              // SOUND
+    }
+    // Top wall
+    if (ballY + ballRadius > windowHeight - 10)
+    {
+        ballY  = windowHeight - 10 - ballRadius;
+        ballDY = -ballDY;
+        soundWall();                              // SOUND
+    }
+
+    // ---- Ball falls below screen -> lose life ----
+    if (ballY - ballRadius < 0)
+    {
+        playerLives--;
+        if (playerLives <= 0)
+        {
+            if (playerScore > highScore) highScore = playerScore;
+            soundGameOver();                      // SOUND
+            gameState = STATE_GAME_OVER;
+        }
+        else
+        {
+            soundLoseLife();                      // SOUND
+            resetBall();
+        }
+        return;
     }
 
 }
