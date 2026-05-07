@@ -11,14 +11,84 @@
 #include <cstdlib>
 #include <sstream>
 
+// ============================================================
+// SOUND SYSTEM - Windows waveOut API
+// No external files needed. Sound is generated in memory.
+// Compile flag: add -lwinmm
+// ============================================================
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+#define SAMPLE_RATE 22050
+
+// Generate a simple tone into a raw PCM buffer and play it
+// freq  = frequency in Hz
+// ms    = duration in milliseconds
+// vol   = volume 0.0 to 1.0
+void playTone(float freq, int ms, float vol = 0.8f)
+{
+    int numSamples = (SAMPLE_RATE * ms) / 1000;
+    short* buf = (short*)malloc(numSamples * sizeof(short));
+    if (!buf) return;
+
+    for (int i = 0; i < numSamples; i++)
+    {
+        // sine wave with linear fade-out to avoid click at end
+        float t       = (float)i / SAMPLE_RATE;
+        float fade    = 1.0f - (float)i / numSamples;
+        buf[i] = (short)(32767.0f * vol * fade * sin(2.0f * 3.14159f * freq * t));
+    }
+
+    WAVEHDR      hdr  = {0};
+    WAVEFORMATEX fmt  = {0};
+    fmt.wFormatTag      = WAVE_FORMAT_PCM;
+    fmt.nChannels       = 1;
+    fmt.nSamplesPerSec  = SAMPLE_RATE;
+    fmt.wBitsPerSample  = 16;
+    fmt.nBlockAlign     = 2;
+    fmt.nAvgBytesPerSec = SAMPLE_RATE * 2;
+
+    HWAVEOUT hWave;
+    if (waveOutOpen(&hWave, WAVE_MAPPER, &fmt, 0, 0, CALLBACK_NULL) != MMSYSERR_NOERROR)
+    {
+        free(buf);
+        return;
+    }
+
+    hdr.lpData         = (LPSTR)buf;
+    hdr.dwBufferLength = numSamples * sizeof(short);
+    waveOutPrepareHeader(hWave, &hdr, sizeof(hdr));
+    waveOutWrite(hWave, &hdr, sizeof(hdr));
+
+    // Wait until done then clean up
+    while (!(hdr.dwFlags & WHDR_DONE))
+        Sleep(1);
+
+    waveOutUnprepareHeader(hWave, &hdr, sizeof(hdr));
+    waveOutClose(hWave);
+    free(buf);
+}
+
+
 // ---- Thread wrapper so sound never blocks the game loop ----
 struct SoundJob { float freq; int ms; float vol; };
 
+DWORD WINAPI soundThread(LPVOID param)
+{
+    SoundJob* j = (SoundJob*)param;
+    playTone(j->freq, j->ms, j->vol);
+    free(j);
+    return 0;
+}
 
 void asyncTone(float freq, int ms, float vol = 0.8f)
 {
     SoundJob* j = (SoundJob*)malloc(sizeof(SoundJob));
     j->freq = freq; j->ms = ms; j->vol = vol;
+
+    HANDLE h = CreateThread(NULL, 0, soundThread, j, 0, NULL);
+    if (h) CloseHandle(h);
 
 }
 
