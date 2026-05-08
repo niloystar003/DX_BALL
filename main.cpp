@@ -97,6 +97,9 @@ void soundWall()          { asyncTone(880,  30, 0.4f); }   // short high tick
 void soundGameOver()      { asyncTone(100, 500, 1.0f); }   // game over
 void soundLoseLife()      { asyncTone(200, 300, 0.9f); }   // lose a life
 void soundSpeedUp()       { asyncTone(990, 100, 0.7f); }   // ball speed increased
+void soundPaddle()        { asyncTone(440,  50, 0.6f); }   // medium pop
+void soundBrickNormal()   { asyncTone(600,  40, 0.7f); }   // brick destroyed
+void soundBrickHit()      { asyncTone(300,  30, 0.5f); }   // brick damaged, not destroyed
 
 // ============================================================
 
@@ -322,6 +325,35 @@ string floatToStr(float val, int decimals)
 }
 
 // ============================================================
+// SPAWN a perk item at given position
+// ============================================================
+void spawnPerk(float x, float y)
+{
+    // Randomly decide if a perk drops (40% chance)
+    int chance = rand() % 100;
+    if (chance > 40) return;
+
+    PerkItem p;
+    p.x         = x;
+    p.y         = y;
+    p.width     = 25.0f;
+    p.height    = 15.0f;
+    p.active    = true;
+    p.fallSpeed = 2.5f;
+
+    // Randomly pick perk type
+    int perkRoll = rand() % 6;
+    if      (perkRoll == 0) { p.type=PERK_EXTRA_LIFE;    p.r=0;   p.g=1;   p.b=0;   }
+    else if (perkRoll == 1) { p.type=PERK_SPEED_UP;      p.r=1;   p.g=1;   p.b=0;   }
+    else if (perkRoll == 2) { p.type=PERK_WIDE_PADDLE;   p.r=0;   p.g=1;   p.b=1;   }
+    else if (perkRoll == 3) { p.type=PERK_FIREBALL;      p.r=1;   p.g=0.5; p.b=0;   }
+    else if (perkRoll == 4) { p.type=PERK_SHRINK_PADDLE; p.r=1;   p.g=0;   p.b=0;   }
+    else                    { p.type=PERK_INSTANT_DEATH;  p.r=0.5; p.g=0;   p.b=0.5; }
+
+    perkItems.push_back(p);
+}
+
+// ============================================================
 // RESET ball position (stick to paddle)
 // ============================================================
 void resetBall()
@@ -331,6 +363,72 @@ void resetBall()
     ballDX       = 3.0f;
     ballDY       = 4.0f;
     ballLaunched = false;
+}
+
+// ============================================================
+// COLLISION: Ball with Bricks
+// ============================================================
+void checkBallBrickCollision()
+{
+    for (int r = 0; r < BRICK_ROWS; r++)
+    {
+        for (int c = 0; c < BRICK_COLS; c++)
+        {
+            Brick &b = bricks[r][c];
+            if (!b.active) continue;
+
+            // Find closest point on brick to ball center
+            float closestX = max(b.x, min(ballX, b.x + BRICK_WIDTH));
+            float closestY = max(b.y, min(ballY, b.y + BRICK_HEIGHT));
+
+            float distX = ballX - closestX;
+            float distY = ballY - closestY;
+            float dist  = sqrt(distX*distX + distY*distY);
+
+            if (dist < ballRadius)
+            {
+                // Hit this brick
+                b.hits--;
+
+                if (b.hits <= 0)
+                {
+                    b.active = false;
+                    // score based on type
+                    if      (b.type == BRICK_NORMAL) playerScore += 10;
+                    else if (b.type == BRICK_HARD)   playerScore += 25;
+                    else if (b.type == BRICK_WALL)   playerScore += 50;
+
+                    soundBrickNormal();            // SOUND: brick destroyed
+                    // spawn perk
+                    spawnPerk(b.x + BRICK_WIDTH/2, b.y);
+                }
+                else
+                {
+                    // Brick damaged but not destroyed
+                    // Change color slightly to show damage
+                    b.r = min(1.0f, b.r + 0.2f);
+                    soundBrickHit();               // SOUND: brick damaged
+                }
+
+                // If fireball, don't bounce, just break
+                if (isFireball)
+                {
+                    // no bounce, continue
+                }
+                else
+                {
+                    // Determine bounce direction
+                    if (abs(distX) > abs(distY))
+                        ballDX = -ballDX;
+                    else
+                        ballDY = -ballDY;
+                }
+
+                // Only hit one brick per frame to avoid bugs
+                return;
+            }
+        }
+    }
 }
 
 // ============================================================
@@ -452,6 +550,34 @@ void update(float deltaTime)
         }
         return;
     }
+
+
+    // ---- Ball vs Paddle collision ----
+    if (ballY - ballRadius <= paddleY + paddleHeight &&
+        ballY - ballRadius >= paddleY                &&
+        ballX >= paddleX                             &&
+        ballX <= paddleX + paddleWidth               &&
+        ballDY < 0)
+    {
+        // Reflect ball
+        ballDY = -ballDY;
+        ballY  = paddleY + paddleHeight + ballRadius + 1;
+
+        // Adjust angle based on where ball hits paddle
+        float hitPos = (ballX - paddleX) / paddleWidth;  // 0 to 1
+        // hitPos 0 = left edge, 1 = right edge
+        float speed  = sqrt(ballDX*ballDX + ballDY*ballDY);
+        float angle  = (hitPos - 0.5f) * 2.5f;  // -1.25 to +1.25 radians range
+        ballDX       = speed * sin(angle);
+        ballDY       = speed * cos(angle);
+        if (ballDY < 0) ballDY = -ballDY;  // always go up
+        if (abs(ballDY) < 1.0f) ballDY = 1.5f;
+
+        soundPaddle();                            // SOUND
+    }
+
+    // ---- Ball vs Bricks ----
+    checkBallBrickCollision();
 
 }
 
@@ -857,3 +983,4 @@ int main(int argc, char** argv)
     glutMainLoop();
     return 0;
 }
+
