@@ -100,6 +100,9 @@ void soundSpeedUp()       { asyncTone(990, 100, 0.7f); }   // ball speed increas
 void soundPaddle()        { asyncTone(440,  50, 0.6f); }   // medium pop
 void soundBrickNormal()   { asyncTone(600,  40, 0.7f); }   // brick destroyed
 void soundBrickHit()      { asyncTone(300,  30, 0.5f); }   // brick damaged, not destroyed
+void soundPerkGood()      { asyncTone(880,  80, 0.8f); }   // good perk collected
+void soundPerkBad()       { asyncTone(150, 150, 0.8f); }   // bad perk / damage
+void soundWin()           { asyncTone(1047,300, 0.9f); }   // win
 
 // ============================================================
 
@@ -325,6 +328,19 @@ string floatToStr(float val, int decimals)
 }
 
 // ============================================================
+// COUNT remaining bricks
+// ============================================================
+int countActiveBricks()
+{
+    int count = 0;
+    for (int r = 0; r < BRICK_ROWS; r++)
+        for (int c = 0; c < BRICK_COLS; c++)
+            if (bricks[r][c].active)
+                count++;
+    return count;
+}
+
+// ============================================================
 // SPAWN a perk item at given position
 // ============================================================
 void spawnPerk(float x, float y)
@@ -364,6 +380,70 @@ void resetBall()
     ballDY       = 4.0f;
     ballLaunched = false;
 }
+
+// ============================================================
+// APPLY PERK EFFECT
+// ============================================================
+void applyPerk(int type)
+{
+    if (type == PERK_EXTRA_LIFE)
+    {
+        soundPerkGood();                          // SOUND
+        playerLives++;
+        cout << "Perk: Extra Life! Lives = " << playerLives << endl;
+    }
+    else if (type == PERK_SPEED_UP)
+    {
+        soundPerkGood();                          // SOUND
+        // Increase ball speed by 20%
+        float speed = sqrt(ballDX*ballDX + ballDY*ballDY);
+        if (speed < ballSpeedMax)
+        {
+            ballDX *= 1.2f;
+            ballDY *= 1.2f;
+        }
+        cout << "Perk: Speed Up!" << endl;
+    }
+    else if (type == PERK_WIDE_PADDLE)
+    {
+        soundPerkGood();                          // SOUND
+        isWidePaddle    = true;
+        widePaddleTimer = 15.0f;  // 15 seconds
+        paddleWidth     = 160.0f;
+        cout << "Perk: Wide Paddle!" << endl;
+    }
+    else if (type == PERK_FIREBALL)
+    {
+        soundPerkGood();                          // SOUND
+        isFireball    = true;
+        fireballTimer = 10.0f;  // 10 seconds
+        cout << "Perk: Fireball!" << endl;
+    }
+    else if (type == PERK_SHRINK_PADDLE)
+    {
+        soundPerkBad();                           // SOUND
+        paddleWidth = max(40.0f, paddleWidth - 30.0f);
+        cout << "Damage: Shrink Paddle!" << endl;
+    }
+    else if (type == PERK_INSTANT_DEATH)
+    {
+        soundPerkBad();                           // SOUND
+        playerLives--;
+        cout << "Damage: Instant Death!" << endl;
+        if (playerLives <= 0)
+        {
+            if (playerScore > highScore) highScore = playerScore;
+            soundGameOver();                      // SOUND
+            gameState = STATE_GAME_OVER;
+        }
+        else
+        {
+            soundLoseLife();                      // SOUND
+            resetBall();
+        }
+    }
+}
+
 
 // ============================================================
 // COLLISION: Ball with Bricks
@@ -428,6 +508,19 @@ void checkBallBrickCollision()
                 return;
             }
         }
+    }
+}
+
+// ============================================================
+// CHECK WIN CONDITION
+// ============================================================
+void checkWin()
+{
+    if (countActiveBricks() == 0)
+    {
+        if (playerScore > highScore) highScore = playerScore;
+        soundWin();                               // SOUND
+        gameState = STATE_WIN;
     }
 }
 
@@ -578,6 +671,75 @@ void update(float deltaTime)
 
     // ---- Ball vs Bricks ----
     checkBallBrickCollision();
+
+    // ---- Update falling perk items ----
+    for (int i = 0; i < (int)perkItems.size(); i++)
+    {
+        PerkItem &p = perkItems[i];
+        if (!p.active) continue;
+
+        p.y -= p.fallSpeed;
+
+        // Check if perk hits paddle
+        if (p.y <= paddleY + paddleHeight &&
+            p.y >= paddleY               &&
+            p.x + p.width  >= paddleX    &&
+            p.x <= paddleX + paddleWidth)
+        {
+            p.active = false;
+            applyPerk(p.type);
+        }
+
+        // Check if perk falls off screen
+        if (p.y < 0)
+        {
+            p.active = false;
+        }
+    }
+
+   // ---- Update bullets ----
+    for (int i = 0; i < (int)bullets.size(); i++)
+    {
+        Bullet &blt = bullets[i];
+        if (!blt.active) continue;
+
+        blt.y += 7.0f;
+
+        // Check bullet vs bricks
+        for (int r = 0; r < BRICK_ROWS; r++)
+        {
+            for (int c = 0; c < BRICK_COLS; c++)
+            {
+                Brick &br = bricks[r][c];
+                if (!br.active) continue;
+
+                if (blt.x >= br.x && blt.x <= br.x + BRICK_WIDTH &&
+                    blt.y >= br.y && blt.y <= br.y + BRICK_HEIGHT)
+                {
+                    blt.active = false;
+                    br.hits--;
+                    if (br.hits <= 0)
+                    {
+                        br.active = false;
+                        playerScore += 10;
+                        soundBrickNormal();        // SOUND
+                        spawnPerk(br.x + BRICK_WIDTH/2, br.y);
+                    }
+                    else
+                    {
+                        soundBrickHit();           // SOUND
+                    }
+                }
+            }
+        }
+
+        // Remove if off screen
+        if (blt.y > windowHeight)
+            blt.active = false;
+    }
+
+    // ---- Check win ----
+    checkWin();
 
 }
 
@@ -983,4 +1145,3 @@ int main(int argc, char** argv)
     glutMainLoop();
     return 0;
 }
-
