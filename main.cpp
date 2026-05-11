@@ -103,6 +103,7 @@ void soundBrickHit()      { asyncTone(300,  30, 0.5f); }   // brick damaged, not
 void soundPerkGood()      { asyncTone(880,  80, 0.8f); }   // good perk collected
 void soundPerkBad()       { asyncTone(150, 150, 0.8f); }   // bad perk / damage
 void soundWin()           { asyncTone(1047,300, 0.9f); }   // win
+void soundLaunch()        { asyncTone(660,  60, 0.6f); }   // ball launched
 
 // ============================================================
 
@@ -1085,6 +1086,63 @@ void timer(int value)
     // Register next timer callback
     glutTimerFunc(16, timer, 0);
 }
+
+
+// ============================================================
+// SPECIAL KEY CALLBACK (Arrow keys)
+// ============================================================
+void specialKey(int key, int x, int y)
+{
+    if (gameState != STATE_PLAYING) return;
+
+    if (key == GLUT_KEY_LEFT)  moveLeft  = true;
+    if (key == GLUT_KEY_RIGHT) moveRight = true;
+}
+
+// ============================================================
+// SPECIAL KEY UP CALLBACK
+// ============================================================
+void specialKeyUp(int key, int x, int y)
+{
+    if (key == GLUT_KEY_LEFT)  moveLeft  = false;
+    if (key == GLUT_KEY_RIGHT) moveRight = false;
+}
+
+// ============================================================
+// MOUSE MOTION CALLBACK (move paddle with mouse)
+// ============================================================
+void mouseMotion(int x, int y)
+{
+    if (gameState != STATE_PLAYING) return;
+
+    // Center paddle on mouse x
+    paddleX = x - paddleWidth / 2.0f;
+
+    // Clamp
+    if (paddleX < 10)
+        paddleX = 10;
+    if (paddleX + paddleWidth > windowWidth - 10)
+        paddleX = windowWidth - 10 - paddleWidth;
+}
+
+// ============================================================
+// MOUSE CLICK CALLBACK
+// ============================================================
+void mouseClick(int button, int state, int x, int y)
+{
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        if (gameState == STATE_PLAYING && !ballLaunched)
+        {
+            ballLaunched = true;
+            ballDX = 3.0f;
+            ballDY = 4.0f;
+            soundLaunch();                        // SOUND
+        }
+    }
+}
+
+
 // ============================================================
 // RESHAPE CALLBACK
 // ============================================================
@@ -1127,6 +1185,11 @@ int main(int argc, char** argv)
     // Register callbacks
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    glutSpecialFunc(specialKey);
+    glutSpecialUpFunc(specialKeyUp);
+    glutPassiveMotionFunc(mouseMotion);
+    glutMotionFunc(mouseMotion);
+    glutMouseFunc(mouseClick);
 
 
     // Start timer
