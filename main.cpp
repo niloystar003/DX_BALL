@@ -104,6 +104,7 @@ void soundPerkGood()      { asyncTone(880,  80, 0.8f); }   // good perk collecte
 void soundPerkBad()       { asyncTone(150, 150, 0.8f); }   // bad perk / damage
 void soundWin()           { asyncTone(1047,300, 0.9f); }   // win
 void soundLaunch()        { asyncTone(660,  60, 0.6f); }   // ball launched
+void soundMenu()          { asyncTone(520,  40, 0.5f); }   // menu click
 
 // ============================================================
 
@@ -371,6 +372,53 @@ void spawnPerk(float x, float y)
 }
 
 // ============================================================
+// INITIALIZE / RESET BRICKS
+// ============================================================
+void initBricks()
+{
+    for (int r = 0; r < BRICK_ROWS; r++)
+    {
+        for (int c = 0; c < BRICK_COLS; c++)
+        {
+            Brick &b = bricks[r][c];
+
+            // position: start from top-left area
+            b.x      = BRICK_OFFSET_X + c * (BRICK_WIDTH  + 4);
+            b.y      = BRICK_OFFSET_Y + r * (BRICK_HEIGHT + 4);
+            b.active = true;
+
+            // Assign brick types based on row
+            if (r == 0 || r == BRICK_ROWS - 1)
+            {
+                // Top and bottom rows: wall bricks
+                b.type = BRICK_WALL;
+                b.hits = 3;
+                b.r    = 0.6f; b.g = 0.4f; b.b = 0.2f;
+            }
+            else if (r == 1 || r == BRICK_ROWS - 2)
+            {
+                // Hard bricks
+                b.type = BRICK_HARD;
+                b.hits = 2;
+                b.r    = 0.9f; b.g = 0.2f; b.b = 0.8f;
+            }
+            else
+            {
+                // Normal bricks
+                b.type = BRICK_NORMAL;
+                b.hits = 1;
+                // Random warm color
+                float colorRoll = (rand() % 4);
+                if      (colorRoll == 0) { b.r=1;    b.g=0.2f; b.b=0.2f; }
+                else if (colorRoll == 1) { b.r=1;    b.g=0.6f; b.b=0;    }
+                else if (colorRoll == 2) { b.r=0.8f; b.g=0;    b.b=0.8f; }
+                else                     { b.r=0.2f; b.g=0.4f; b.b=1;    }
+            }
+        }
+    }
+}
+
+// ============================================================
 // RESET ball position (stick to paddle)
 // ============================================================
 void resetBall()
@@ -381,6 +429,30 @@ void resetBall()
     ballDY       = 4.0f;
     ballLaunched = false;
 }
+
+// ============================================================
+// RESET entire game
+// ============================================================
+void resetGame()
+{
+    playerLives    = 3;
+    playerScore    = 0;
+    gameTime       = 0.0f;
+    ballSpeedTimer = 0.0f;
+    paddleX        = 350.0f;
+    paddleWidth    = 100.0f;
+    isFireball     = false;
+    isWidePaddle   = false;
+    widePaddleTimer= 0.0f;
+    fireballTimer  = 0.0f;
+    shootingPaddle = false;
+    shootingTimer  = 0.0f;
+    bullets.clear();
+    perkItems.clear();
+    initBricks();
+    resetBall();
+}
+
 
 // ============================================================
 // APPLY PERK EFFECT
@@ -1087,6 +1159,64 @@ void timer(int value)
     glutTimerFunc(16, timer, 0);
 }
 
+// ============================================================
+// KEYBOARD CALLBACK
+// ============================================================
+void keyboard(unsigned char key, int x, int y)
+{
+    // --- MENU state ---
+    if (gameState == STATE_MENU)
+    {
+        if (key == '1')
+        {
+            soundMenu();                          // SOUND
+            resetGame();
+            gameState = STATE_PLAYING;
+        }
+        else if (key == '2')
+        {
+            soundMenu();                          // SOUND
+            gameState = STATE_HIGHSCORE;
+        }
+        else if (key == '3')
+        {
+            soundMenu();                          // SOUND
+            gameState = STATE_HELP;
+        }
+        else if (key == '4' || key == 27)  // 27 = ESC
+        {
+            exit(0);
+        }
+        return;
+    }
+
+    // --- Any state: ESC or M goes to menu ---
+    if (key == 27 || key == 'm' || key == 'M')
+    {
+        soundMenu();                              // SOUND
+        gameState = STATE_MENU;
+        return;
+    }
+
+    // --- HIGH SCORE state ---
+    if (gameState == STATE_HIGHSCORE)
+    {
+        return;  // press M handled above
+    }
+
+
+
+
+}
+
+// ============================================================
+// KEYBOARD UP CALLBACK
+// ============================================================
+void keyboardUp(unsigned char key, int x, int y)
+{
+    if (key == 'a' || key == 'A') moveLeft  = false;
+    if (key == 'd' || key == 'D') moveRight = false;
+}
 
 // ============================================================
 // SPECIAL KEY CALLBACK (Arrow keys)
@@ -1185,6 +1315,8 @@ int main(int argc, char** argv)
     // Register callbacks
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutKeyboardUpFunc(keyboardUp);
     glutSpecialFunc(specialKey);
     glutSpecialUpFunc(specialKeyUp);
     glutPassiveMotionFunc(mouseMotion);
@@ -1208,3 +1340,5 @@ int main(int argc, char** argv)
     glutMainLoop();
     return 0;
 }
+
+
