@@ -102,9 +102,9 @@ int windowHeight = 600;
 
 int gameState = STATE_MENU;
 
-float paddleX       = 350.0f;   
-float paddleY       = 30.0f;    
-float paddleWidth   = 100.0f;  
+float paddleX       = 350.0f;
+float paddleY       = 30.0f;
+float paddleWidth   = 100.0f;
 float paddleHeight  = 15.0f;
 float paddleSpeed   = 10.0f;
 
@@ -115,45 +115,46 @@ bool moveRight = false;
 float ballX      = 400.0f;
 float ballY      = 60.0f;
 float ballRadius = 10.0f;
-float ballDX     = 3.0f;   
-float ballDY     = 4.0f;   
-bool  ballLaunched = false; 
+float ballDX     = 3.0f;
+float ballDY     = 4.0f;
+bool  ballLaunched = false;
 
 float ballSpeedTimer    = 0.0f;
-float ballSpeedInterval = 15.0f; 
+float ballSpeedInterval = 15.0f;
+float ballSpeedMax      = 12.0f;
 
 #define BRICK_ROWS    7
 #define BRICK_COLS    12
 #define BRICK_WIDTH   58
 #define BRICK_HEIGHT  22
 #define BRICK_OFFSET_X 25
-#define BRICK_OFFSET_Y 300  
+#define BRICK_OFFSET_Y 300
 
 
 #define BRICK_EMPTY    0
 #define BRICK_NORMAL   1
-#define BRICK_HARD     2  
-#define BRICK_WALL     3  
+#define BRICK_HARD     2
+#define BRICK_WALL     3
 
 struct Brick
 {
-    float x, y;           
-    int   type;          
-    int   hits;         
-    bool  active;         
-    float r, g, b;       
+    float x, y;
+    int   type;
+    int   hits;
+    bool  active;
+    float r, g, b;
 };
 
 Brick bricks[BRICK_ROWS][BRICK_COLS];
 
 
 #define PERK_NONE          0
-#define PERK_EXTRA_LIFE    1   
-#define PERK_SPEED_UP      2   
-#define PERK_WIDE_PADDLE   3   
-#define PERK_FIREBALL      4   
-#define PERK_SHRINK_PADDLE 5  
-#define PERK_INSTANT_DEATH 6   
+#define PERK_EXTRA_LIFE    1
+#define PERK_SPEED_UP      2
+#define PERK_WIDE_PADDLE   3
+#define PERK_FIREBALL      4
+#define PERK_SHRINK_PADDLE 5
+#define PERK_INSTANT_DEATH 6
 
 struct PerkItem
 {
@@ -165,18 +166,18 @@ struct PerkItem
     float fallSpeed;
 };
 
-vector<PerkItem> perkItems;  
+vector<PerkItem> perkItems;
 
 
-float widePaddleTimer  = 0.0f;   
-float fireballTimer    = 0.0f;   
+float widePaddleTimer  = 0.0f;
+float fireballTimer    = 0.0f;
 bool  isFireball       = false;
 bool  isWidePaddle     = false;
 
 
 int   playerLives  = 3;
 int   playerScore  = 0;
-float gameTime     = 0.0f;   
+float gameTime     = 0.0f;
 int   highScore    = 0;
 
 
@@ -376,13 +377,13 @@ void applyPerk(int type)
 {
     if (type == PERK_EXTRA_LIFE)
     {
-        soundPerkGood();                          
+        soundPerkGood();
         playerLives++;
         cout << "Perk: Extra Life! Lives = " << playerLives << endl;
     }
     else if (type == PERK_SPEED_UP)
     {
-        soundPerkGood();                         
+        soundPerkGood();
 
         float speed = sqrt(ballDX*ballDX + ballDY*ballDY);
         if (speed < ballSpeedMax)
@@ -394,39 +395,39 @@ void applyPerk(int type)
     }
     else if (type == PERK_WIDE_PADDLE)
     {
-        soundPerkGood();                         
+        soundPerkGood();
         isWidePaddle    = true;
-        widePaddleTimer = 15.0f; 
+        widePaddleTimer = 15.0f;
         paddleWidth     = 160.0f;
         cout << "Perk: Wide Paddle!" << endl;
     }
     else if (type == PERK_FIREBALL)
     {
-        soundPerkGood();                         
+        soundPerkGood();
         isFireball    = true;
-        fireballTimer = 10.0f;  
+        fireballTimer = 10.0f;
         cout << "Perk: Fireball!" << endl;
     }
     else if (type == PERK_SHRINK_PADDLE)
     {
-        soundPerkBad();                           
+        soundPerkBad();
         paddleWidth = max(40.0f, paddleWidth - 30.0f);
         cout << "Damage: Shrink Paddle!" << endl;
     }
     else if (type == PERK_INSTANT_DEATH)
     {
-        soundPerkBad();                           
+        soundPerkBad();
         playerLives--;
         cout << "Damage: Instant Death!" << endl;
         if (playerLives <= 0)
         {
             if (playerScore > highScore) highScore = playerScore;
-            soundGameOver();                      
+            soundGameOver();
             gameState = STATE_GAME_OVER;
         }
         else
         {
-            soundLoseLife();                      
+            soundLoseLife();
             resetBall();
         }
     }
@@ -461,31 +462,31 @@ void checkBallBrickCollision()
                     else if (b.type == BRICK_HARD)   playerScore += 25;
                     else if (b.type == BRICK_WALL)   playerScore += 50;
 
-                    soundBrickNormal();            
+                    soundBrickNormal();
                     spawnPerk(b.x + BRICK_WIDTH/2, b.y);
                 }
                 else
                 {
-                  
+
                     b.r = min(1.0f, b.r + 0.2f);
-                    soundBrickHit();               
+                    soundBrickHit();
                 }
 
-          
+
                 if (isFireball)
                 {
 
                 }
                 else
                 {
-                   
+
                     if (abs(distX) > abs(distY))
                         ballDX = -ballDX;
                     else
                         ballDY = -ballDY;
                 }
 
-                
+
                 return;
             }
         }
@@ -498,7 +499,7 @@ void checkWin()
     if (countActiveBricks() == 0)
     {
         if (playerScore > highScore) highScore = playerScore;
-        soundWin();                              
+        soundWin();
         gameState = STATE_WIN;
     }
 }
@@ -520,7 +521,7 @@ void update(float deltaTime)
             float factor = 1.1f;
             ballDX *= factor;
             ballDY *= factor;
-            soundSpeedUp();                       
+            soundSpeedUp();
             cout << "Ball speed increased!" << endl;
         }
     }
@@ -577,21 +578,21 @@ void update(float deltaTime)
     {
         ballX  = 10 + ballRadius;
         ballDX = -ballDX;
-        soundWall();                             
+        soundWall();
     }
 
     if (ballX + ballRadius > windowWidth - 10)
     {
         ballX  = windowWidth - 10 - ballRadius;
         ballDX = -ballDX;
-        soundWall();                             
+        soundWall();
     }
-  
+
     if (ballY + ballRadius > windowHeight - 10)
     {
         ballY  = windowHeight - 10 - ballRadius;
         ballDY = -ballDY;
-        soundWall();                              
+        soundWall();
     }
 
 
@@ -601,12 +602,12 @@ void update(float deltaTime)
         if (playerLives <= 0)
         {
             if (playerScore > highScore) highScore = playerScore;
-            soundGameOver();                      
+            soundGameOver();
             gameState = STATE_GAME_OVER;
         }
         else
         {
-            soundLoseLife();                     
+            soundLoseLife();
             resetBall();
         }
         return;
@@ -631,7 +632,7 @@ void update(float deltaTime)
         if (ballDY < 0) ballDY = -ballDY;  // always go up
         if (abs(ballDY) < 1.0f) ballDY = 1.5f;
 
-        soundPaddle();                          
+        soundPaddle();
     }
 
     checkBallBrickCollision();
@@ -682,12 +683,12 @@ void update(float deltaTime)
                     {
                         br.active = false;
                         playerScore += 10;
-                        soundBrickNormal();        
+                        soundBrickNormal();
                         spawnPerk(br.x + BRICK_WIDTH/2, br.y);
                     }
                     else
                     {
-                        soundBrickHit();           
+                        soundBrickHit();
                     }
                 }
             }
@@ -988,21 +989,21 @@ void keyboard(unsigned char key, int x, int y)
     {
         if (key == '1')
         {
-            soundMenu();                          
+            soundMenu();
             resetGame();
             gameState = STATE_PLAYING;
         }
         else if (key == '2')
         {
-            soundMenu();                         
+            soundMenu();
             gameState = STATE_HIGHSCORE;
         }
         else if (key == '3')
         {
-            soundMenu();                         
+            soundMenu();
             gameState = STATE_HELP;
         }
-        else if (key == '4' || key == 27)  
+        else if (key == '4' || key == 27)
         {
             exit(0);
         }
@@ -1011,27 +1012,27 @@ void keyboard(unsigned char key, int x, int y)
 
     if (key == 27 || key == 'm' || key == 'M')
     {
-        soundMenu();                              
+        soundMenu();
         gameState = STATE_MENU;
         return;
     }
 
     if (gameState == STATE_HIGHSCORE)
     {
-        return;  
+        return;
     }
 
 
     if (gameState == STATE_HELP)
     {
-        return;  
+        return;
     }
 
     if (gameState == STATE_GAME_OVER || gameState == STATE_WIN)
     {
         if (key == 'r' || key == 'R')
         {
-            soundMenu();                          
+            soundMenu();
             resetGame();
             gameState = STATE_PLAYING;
         }
@@ -1040,7 +1041,7 @@ void keyboard(unsigned char key, int x, int y)
 
     if (key == 'p' || key == 'P')
     {
-        soundMenu();                              
+        soundMenu();
         if (gameState == STATE_PLAYING)
             gameState = STATE_PAUSED;
         else if (gameState == STATE_PAUSED)
@@ -1052,7 +1053,7 @@ void keyboard(unsigned char key, int x, int y)
     {
         if (key == 'r' || key == 'R')
         {
-            soundMenu();                        
+            soundMenu();
             resetGame();
             gameState = STATE_PLAYING;
         }
@@ -1068,7 +1069,7 @@ void keyboard(unsigned char key, int x, int y)
                 ballLaunched = true;
                 ballDX = 3.0f;
                 ballDY = 4.0f;
-                soundLaunch();                    
+                soundLaunch();
             }
         }
 
@@ -1079,7 +1080,7 @@ void keyboard(unsigned char key, int x, int y)
             b.y      = paddleY + paddleHeight;
             b.active = true;
             bullets.push_back(b);
-            soundBullet();                       
+            soundBullet();
         }
 
         if (key == 'a' || key == 'A') moveLeft  = true;
@@ -1132,7 +1133,7 @@ void mouseClick(int button, int state, int x, int y)
             ballLaunched = true;
             ballDX = 3.0f;
             ballDY = 4.0f;
-            soundLaunch();                        
+            soundLaunch();
         }
     }
 }
